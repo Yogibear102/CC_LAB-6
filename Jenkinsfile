@@ -1,0 +1,34 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build Backend Image') {
+            steps {
+                sh 'docker build -t backend-app CC_LAB-6/backend'
+            }
+        }
+        stage('Deploy Backends') {
+            steps {
+                sh '''
+                docker rm -f backend1 backend2 || true
+                docker run -d --name backend1 backend-app
+                docker run -d --name backend2 backend-app
+                '''
+            }
+        }
+        stage('Deploy NGINX Load Balancer') {
+            steps {
+                sh '''
+                docker rm -f nginx-lb || true
+                docker run -d --name nginx-lb -p 80:80 \
+                  -v $(pwd)/CC_LAB-6/nginx:/etc/nginx/conf.d:ro \
+                  nginx
+                '''
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline executed successfully. NGINX load balancer is running.'
+        }
+    }
+}
